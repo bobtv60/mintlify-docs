@@ -1,0 +1,101 @@
+---
+title: 'Heatmaps'
+description: 'Track player movement and spatial events'
+icon: 'map'
+---
+
+## Overview
+
+The Heatmap Service tracks where players move, where they die, and where they experience specific emotions (like frustration or joy). This data is aggregated to visualize **Hotspots** and **Traffic Flow** on your dashboard.
+
+### Features
+- **Automatic Movement Tracking**: Periodically records player positions.
+- **Contextual Events**: Tag positions with events like "Death" or "Shop Purchase".
+- **Procedural Generation Support**: Map context anchors allow you to track heatmaps even in randomly generated levels.
+
+## API Reference
+
+### `TrackMapContext`
+
+<Note>Essential for Procedural Games</Note>
+
+Sends metadata about the current map layout (Anchors). This allows Upview to align heatmap points correctly, even if the map is generated randomly or moves.
+
+```lua
+Upview.Heatmap:TrackMapContext(mapName, anchors)
+```
+
+**Parameters**
+- `mapName` (string): A unique name for this map layout.
+- `anchors` (table): A list of key points (Landmarks) to anchor the map.
+
+**Example**
+```lua
+local anchors = {
+    { name = "Spawn", position = Vector3.new(0, 5, 0), type = "spawn" },
+    { name = "Boss", position = Vector3.new(100, 5, 0), type = "poi" }
+}
+
+-- Call this when the map loads
+Upview.Heatmap:TrackMapContext("Dungeon_Level_1", anchors)
+```
+
+---
+
+### `RecordPosition`
+
+Manually records a single data point.
+
+```lua
+Upview.Heatmap:RecordPosition(zoneType, position, emotion, metadata)
+```
+
+**Parameters**
+- `zoneType` (string): Context for the location (e.g., "boss_arena", "shop").
+- `position` (Vector3): The world position.
+- `emotion` (string): "neutral", "joy", "frustration".
+- `metadata` (table, optional): Extra data like `waveNumber` or `item`.
+
+---
+
+### `StartTracking`
+
+Starts the automatic background loop that records player positions every few seconds (default: 2s).
+
+```lua
+Upview.Heatmap:StartTracking()
+```
+
+<Tip>
+  Tracking is enabled by default if `enableHeatmaps` is set to true in the config.
+</Tip>
+
+---
+
+## Helper Methods
+
+### `RecordDeathLocation`
+Automatically logs a "frustration" point at the player's death location.
+
+```lua
+-- In your death handler
+Humanoid.Died:Connect(function()
+    Upview.Heatmap:RecordDeathLocation(player, rootPart.Position, "ZombieAttack")
+end)
+```
+
+### `RecordInteraction`
+Logs successful or failed interactions (e.g., opening a chest).
+
+```lua
+local success = TryOpenChest()
+Upview.Heatmap:RecordInteraction("ChestOpen", chest.Position, success)
+```
+
+### `RecordEmotion`
+Logs a specific emotion at a location.
+
+```lua
+Upview.Heatmap:RecordEmotion("joy", player.Character.PrimaryPart.Position, { reason = "LevelUp" })
+```
+

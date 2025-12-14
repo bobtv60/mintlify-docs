@@ -1,0 +1,71 @@
+---
+title: 'Introduction'
+description: 'Get started with the Upview Roblox SDK'
+icon: 'cube'
+---
+
+## Installation
+
+Upview for Roblox allows you to track player behavior, frustration, and spatial analytics directly from your game.
+
+### 1. Get the Module
+
+You can install the Upview module via the Roblox Marketplace or by manually inserting the model.
+
+<Card title="Get it on Roblox Marketplace" icon="download" href="#">
+  Click to install the official Upview module.
+</Card>
+
+### 2. File Structure
+
+Once inserted, organize the scripts in your **Explorer** as follows:
+
+```lua
+ServerScriptService
+ ├── Upview (Folder)
+ │    ├── init (ModuleScript) -- Main entry point
+ │    ├── Core (Folder)
+ │    ├── Services (Folder)
+ │    └── Utils (Folder)
+ └── UpviewInitializer (Script)
+```
+
+<Warning>
+  Ensure `Upview` is a **Folder** containing a ModuleScript named `init`. This allows you to `require` the folder directly.
+</Warning>
+
+## Server Initialization
+
+Initialize Upview on the server start. This sets up the API connection and starts background services.
+
+```lua
+-- ServerScriptService/UpviewInitializer.server.lua
+local ServerScriptService = game:GetService("ServerScriptService")
+local Upview = require(ServerScriptService.Upview)
+
+Upview:Initialize({
+    apiKey = "up_live_...", -- Your API Key from the Dashboard
+    environment = "production", -- "production" or "development"
+    enableHeatmaps = true,
+    enableTelemetry = true,
+    debug = false
+})
+
+print("Upview initialized!")
+```
+
+## Client Initialization
+
+For client-side tracking (UI interactions, local inputs), initialize Upview in a `LocalScript`.
+
+```lua
+-- StarterPlayerScripts/UpviewClientInit.client.lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- Assuming you put a copy of Upview in ReplicatedStorage for client access
+local Upview = require(ReplicatedStorage.Upview) 
+
+Upview:Initialize({
+    logLevel = "INFO"
+})
+```
+
