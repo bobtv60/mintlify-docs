@@ -1,0 +1,95 @@
+---
+title: 'Analytics'
+description: 'Track custom events, economy, and player progression'
+icon: 'chart-mixed'
+---
+
+## Overview
+
+The Analytics Service allows you to track high-level game events. These are sent to the Upview dashboard to help you understand player retention, economy balance, and progression difficulty.
+
+## Tracking Events
+
+### `TrackEvent`
+The generic method for tracking any custom action.
+
+```lua
+Upview.Analytics:TrackEvent("quest_started", {
+    questId = "quest_01",
+    difficulty = "hard"
+})
+```
+
+**Parameters**
+- `eventName` (string): The name of the event (e.g., `item_crafted`).
+- `data` (table): Key-value pairs of data associated with the event.
+
+---
+
+## Helper Methods
+
+Upview provides specialized methods for common game events to ensure consistent data structure.
+
+### `TrackPlayerJoin` / `TrackPlayerLeave`
+<Note>These are tracked automatically if you use the standard initialization.</Note>
+
+```lua
+Upview.Analytics:TrackPlayerJoin(player)
+Upview.Analytics:TrackPlayerLeave(player)
+```
+
+### `TrackPurchase`
+Track economy transactions (Robux or in-game currency).
+
+```lua
+Upview.Analytics:TrackPurchase(player, "sword_01", "Iron Sword", 100, true, "gold")
+```
+
+**Parameters**
+- `player`: The player instance.
+- `itemId` (string): Unique ID of the item.
+- `itemName` (string): Display name.
+- `price` (number): Cost.
+- `success` (boolean): Did the transaction succeed?
+- `currency` (string): "robux", "gold", "gems", etc.
+
+### `TrackProgression`
+Track level ups, quest completions, or rank changes.
+
+```lua
+Upview.Analytics:TrackProgression(player, "level_up", 4, 5)
+```
+
+**Parameters**
+- `player`: The player instance.
+- `type` (string): "level", "quest", "rank".
+- `oldValue` (any): Previous state.
+- `newValue` (any): New state.
+
+### `TrackKill`
+Track when a player kills an enemy.
+
+```lua
+Upview.Analytics:TrackKill(player, "Zombie", 5, enemyPosition)
+```
+
+### `TrackDeath`
+Track player deaths.
+
+```lua
+Upview.Analytics:TrackDeath(player, "Lava", deathPosition)
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Consistent Naming" icon="pen-to-square">
+    Use snake_case for event names (`boss_fight` not `BossFight`) to keep dashboards clean.
+  </Card>
+  <Card title="Avoid High Frequency" icon="gauge-high">
+    Don't track events that happen every frame (like "step_taken"). Use Heatmaps for movement or Telemetry for performance.
+  </Card>
+</CardGroup>
+

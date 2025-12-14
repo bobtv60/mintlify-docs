@@ -1,0 +1,45 @@
+---
+title: 'Telemetry'
+description: 'Monitor game performance, FPS, and memory usage'
+icon: 'gauge'
+---
+
+## Overview
+
+The Telemetry Service automatically monitors the health of your game instances. It tracks performance metrics on both the Server and Client.
+
+### Metrics Tracked
+- **FPS**: Frames per second.
+- **Heartbeat**: Physics engine step time.
+- **Memory**: Server and client memory usage (MB).
+- **Instance Count**: Total parts/objects in the workspace.
+- **Ping**: Network latency (Client only).
+
+## Configuration
+
+Telemetry is enabled by default. You can configure the reporting interval in your initialization.
+
+```lua
+Upview:Initialize({
+    -- ... other config
+    enableTelemetry = true,
+    telemetry = {
+        interval = 60, -- Send report every 60 seconds
+    }
+})
+```
+
+## Manual Usage
+
+You generally don't need to call Telemetry methods manually, as the service runs a background loop. However, you can force a report if needed.
+
+### `ReportMetrics`
+
+```lua
+Upview.Telemetry:ReportMetrics()
+```
+
+<Note>
+  The Telemetry Service automatically adapts to whether it is running on the Server or Client and collects the appropriate metrics for that context.
+</Note>
+

@@ -1,0 +1,74 @@
+---
+title: 'Crash Reporting'
+description: 'Set up Sentry-like error tracking for your Roblox game'
+icon: 'bug'
+---
+
+## Overview
+
+Upview provides a powerful Crash Reporting system that groups similar errors into **Issues**. It captures:
+- **Stack Traces**: Exact file and line number.
+- **Breadcrumbs**: The events leading up to the crash (e.g., "Player Joined" -> "Opened Shop" -> "Error").
+- **User Context**: OS, Platform, Region, and Session ID.
+
+## Setup
+
+To catch all script errors automatically, you need to connect to Roblox's `ScriptContext`.
+
+### Server-Side Tracking
+Add this to your `UpviewInitializer.server.lua` script, after initialization.
+
+```lua
+local ScriptContext = game:GetService("ScriptContext")
+
+ScriptContext.Error:Connect(function(message, stackTrace, script)
+    -- Filter out Upview's own errors to prevent loops
+    if script and script.Name:match("Upview") then return end
+    
+    Upview.Analytics:TrackError("ScriptError", message, {
+        stackTrace = stackTrace,
+        scriptName = script and script:GetFullName() or "Unknown"
+    })
+end)
+```
+
+### Client-Side Tracking
+Add this to your `UpviewClientInit.client.lua`.
+
+```lua
+local ScriptContext = game:GetService("ScriptContext")
+
+ScriptContext.Error:Connect(function(message, stackTrace, script)
+    Upview.Analytics:TrackError("ClientScriptError", message, {
+        stackTrace = stackTrace,
+        scriptName = script and script:GetFullName() or "Unknown"
+    })
+end)
+```
+
+## Manual Error Reporting
+
+You can also manually report "soft errors" or handled exceptions.
+
+```lua
+local success, result = pcall(function()
+    -- Risky operation
+    return DataStore:GetAsync("key")
+end)
+
+if not success then
+    Upview.Analytics:TrackError("DataStoreFailure", result, {
+        key = "key",
+        attempt = 1
+    })
+end
+```
+
+## Dashboard Features
+
+### Issue Grouping
+Upview automatically groups errors based on the error type and message. This prevents your logs from being flooded with the same error occurring 1,000 times.
+
+### Breadcrumbs
+When you view an Issue, you will see a timeline of the last 20 events for that specific session. This helps you reproduce the bug by seeing exactly what the player did before the crash.
+
