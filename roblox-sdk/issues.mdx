@@ -9,66 +9,90 @@ icon: 'bug'
 Upview provides a powerful Crash Reporting system that groups similar errors into **Issues**. It captures:
 - **Stack Traces**: Exact file and line number.
 - **Breadcrumbs**: The events leading up to the crash (e.g., "Player Joined" -> "Opened Shop" -> "Error").
-- **User Context**: OS, Platform, Region, and Session ID.
+- **Session Replay**: A 3D visual reconstruction of the player's session leading up to the error.
+- **Server Context**: Memory usage, physics FPS, and player count at the time of server crashes.
 
 ## Setup
 
 To catch all script errors automatically, you need to connect to Roblox's `ScriptContext`.
 
 ### Server-Side Tracking
-Add this to your `UpviewInitializer.server.lua` script, after initialization.
+
+Add this to your `UpviewInitializer.server.lua` script, after initialization. This version captures server performance metrics.
 
 ```lua
 local ScriptContext = game:GetService("ScriptContext")
 
 ScriptContext.Error:Connect(function(message, stackTrace, script)
-    -- Filter out Upview's own errors to prevent loops
-    if script and script.Name:match("Upview") then return end
-    
-    Upview.Analytics:TrackError("ScriptError", message, {
-        stackTrace = stackTrace,
-        scriptName = script and script:GetFullName() or "Unknown"
-    })
+	-- 1. Filter out Upview's own errors to prevent infinite loops
+	if script and script.Name:match("Upview") then return end
+	
+	-- 2. Safe script name retrieval
+	local scriptName = "Unknown"
+	if script then
+		local success, result = pcall(function() return script:GetFullName() end)
+		if success then scriptName = result end
+	end
+	
+	-- 3. Capture Server Stats
+	local stats = {
+		totalMemory = math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb()),
+		heartbeatTime = math.floor(game:GetService("Stats").HeartbeatTimeMs),
+		physicsFPS = math.floor(workspace:GetRealPhysicsFPS()),
+		activePlayers = #game.Players:GetPlayers()
+	}
+
+	Upview.Analytics:TrackError("ServerScriptError", message, {
+		stackTrace = stackTrace,
+		scriptName = scriptName,
+		serverStats = stats
+	})
 end)
 ```
 
 ### Client-Side Tracking
-Add this to your `UpviewClientInit.client.lua`.
+
+Add this to your `UpviewClientInit.client.lua`. This enables 3D Session Replay recording.
 
 ```lua
 local ScriptContext = game:GetService("ScriptContext")
 
 ScriptContext.Error:Connect(function(message, stackTrace, script)
-    Upview.Analytics:TrackError("ClientScriptError", message, {
-        stackTrace = stackTrace,
-        scriptName = script and script:GetFullName() or "Unknown"
-    })
+    -- Filter out Upview's internal errors
+    if script and script:IsDescendantOf(ReplicatedStorage.Upview) then return end
+
+    local scriptName = "Unknown"
+    if script then
+        local success, result = pcall(function() return script:GetFullName() end)
+        if success then scriptName = result end
+    end
+
+	Upview.Analytics:TrackError("ClientScriptError", message, {
+		stackTrace = stackTrace,
+		scriptName = scriptName
+	})
 end)
-```
-
-## Manual Error Reporting
-
-You can also manually report "soft errors" or handled exceptions.
-
-```lua
-local success, result = pcall(function()
-    -- Risky operation
-    return DataStore:GetAsync("key")
-end)
-
-if not success then
-    Upview.Analytics:TrackError("DataStoreFailure", result, {
-        key = "key",
-        attempt = 1
-    })
-end
 ```
 
 ## Dashboard Features
 
-### Issue Grouping
-Upview automatically groups errors based on the error type and message. This prevents your logs from being flooded with the same error occurring 1,000 times.
+### 3D Session Replay
+For client-side errors, Upview records the last 30 seconds of gameplay. In the dashboard, you can view a **3D Replay** of the player's movement and actions leading up to the crash.
+- **Visual Context**: See exactly where the player was and what they were looking at.
+- **Map Context**: Replays are rendered on your actual game map (requires [Map Export](/roblox-sdk/heatmaps#exporting-maps)).
 
-### Breadcrumbs
-When you view an Issue, you will see a timeline of the last 20 events for that specific session. This helps you reproduce the bug by seeing exactly what the player did before the crash.
+### Issue Management
+- **Resolve**: Mark issues as fixed. They will move to the "Resolved" section.
+- **Bin/Ignore**: Archive issues you don't intend to fix right away.
+- **Reopen**: If a resolved issue occurs again, you can reopen it.
 
+### Impact Analysis
+The dashboard shows exactly how severe a crash is:
+- **User Impact**: Number of unique users affected vs total occurrences.
+- **OS Distribution**: See if a crash is specific to Mobile (iOS/Android) or PC (Windows/Mac).
+
+### Server Performance
+For server errors, Upview displays the server's health state at the moment of the crash:
+- **Memory Usage**: Identify memory leaks.
+- **Physics FPS**: Detect server lag spikes.
+- **Heartbeat**: Check frame time health.
